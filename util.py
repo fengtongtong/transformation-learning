@@ -7,10 +7,9 @@ import os
 import tensorflow as tf
 
 
-# 读取数据
-def load_data():
+def load_data(batch_size, is_training=True):
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
-    os.chdir("data_9_feature")
+    os.chdir("/home/tonny-ftt/PycharmProjects/data_9_feature")
 
     GM = pd.read_csv('GM.csv')
     Adware = pd.read_csv('adware.csv')
@@ -22,27 +21,25 @@ def load_data():
 
     train = pd.merge(Adware[:12000], GM[:4000], how='outer')
     train = pd.merge(train, Begin[:40000], how='outer')
-    test = pd.merge(Adware[12000:15000], GM[4000:4575], how='outer')
-    test = pd.merge(test, Begin[40000:50000], how='outer')
+    test = pd.merge(Adware[40000:50000], GM[4000:4575], how='outer')
+    test = pd.merge(test, Begin[80000:100000], how='outer')
 
     train = train.sample(frac=1.0)
     test = test.sample(frac=1.0)
 
-    train_X = train.loc[:,
-              ['total_fpktl', 'total_bpktl', 'min_flowpktl', 'max_flowpktl', 'flow_fin', 'bVarianceDataBytes',
-               'max_idle', 'Init_Win_bytes_forward', 'min_seg_size_forward']]
-    train_Y = train.loc[:, ['calss']]
-    test_X = test.loc[:,
-             ['total_fpktl', 'total_bpktl', 'min_flowpktl', 'max_flowpktl', 'flow_fin', 'bVarianceDataBytes',
-              'max_idle', 'Init_Win_bytes_forward', 'min_seg_size_forward']]
-    test_Y = test.loc[:, ['calss']]
+    train_X = train.iloc[:, :9]
+    #train_X = train_X.apply(lambda x: (x - np.min(x)) / (np.max(x) - np.min(x)))
+    train_Y = train.iloc[:, 9]
+    test_X = test.iloc[:, :9]
+    #test_X = test_X.apply(lambda x: (x - np.min(x)) / (np.max(x) - np.min(x)))
+    test_Y = test.iloc[:, 9]
 
     train_X = train_X.values
-    train_Y = train_Y.values
+    tr_Y = train_Y.values
     test_X = test_X.values
     test_Y = test_Y.values
-    '''
-    train_Y=train_Y.reshape((-1,))
+
+    train_Y=tr_Y.reshape((-1,))
     train_Y = tf.one_hot(train_Y,depth=3,axis=1,dtype='float32')
     test_Y=test_Y.reshape((-1,))
     test_Y = tf.one_hot(test_Y,depth=3,axis=1,dtype='float32')
@@ -50,8 +47,29 @@ def load_data():
     with tf.Session() as sess:
         train_Y = sess.run(train_Y)
         test_Y = sess.run(test_Y)
-    '''
-    return train_X, train_Y, test_X, test_Y
+
+    if is_training:
+
+        num_tr_batch = 124000 // batch_size
+        return train_X, train_Y, tr_Y,num_tr_batch
+
+    else:
+
+        num_te_batch = 30575 // batch_size
+        return test_X, test_Y, num_te_batch
+
+
+
+def get_batch_data(batch_size, num_threads):
+    trX, trY, num_tr_batch = load_data(batch_size, is_training=True)
+    data_queues = tf.train.slice_input_producer([trX, trY])
+    X, Y = tf.train.shuffle_batch(data_queues, num_threads=num_threads,
+                                  batch_size=batch_size,
+                                  capacity=batch_size * 64,
+                                  min_after_dequeue=batch_size * 32,
+                                  allow_smaller_final_batch=False)
+    return X, Y
+
 
 
 def load_new_data():
@@ -77,18 +95,27 @@ def load_new_data():
     test_Y = test.loc[:, ['calss']]
 
     train_X = train_X.values
-    train_Y = train_Y.values
+    tr_Y = train_Y.values
     test_X = test_X.values
-    test_Y = test_Y.values
+    te_Y = test_Y.values
 
-    '''
-    train_Y=train_Y.reshape((-1,))
-    train_Y = tf.one_hot(train_Y,depth=3,axis=1,dtype='float32')
-    test_Y=test_Y.reshape((-1,))
-    test_Y = tf.one_hot(test_Y,depth=3,axis=1,dtype='float32')
+    train_Y = tr_Y.reshape((-1,))
+    train_Y = tf.one_hot(train_Y, depth=3, axis=1, dtype='float32')
+    test_Y = te_Y.reshape((-1,))
+    test_Y = tf.one_hot(test_Y, depth=3, axis=1, dtype='float32')
 
     with tf.Session() as sess:
         train_Y = sess.run(train_Y)
         test_Y = sess.run(test_Y)
-    '''
-    return train_X, train_Y, test_X, test_Y
+
+    return train_X, tr_y, train_Y, test_X, te_Y, test_Y
+
+
+
+def main(argv=None):
+    load_data()
+
+
+
+if __name__ == '__main__':
+    main()

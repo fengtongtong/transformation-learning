@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 
-INPUT_NODE = 9
+INPUT_NODE = 81
 OUTPUT_NODE = 3
 
 # 定义函数，用于初始化权值 W，初始化偏置b
@@ -16,15 +16,18 @@ def bias_variable(shape):
     return bias
 
 def inference(input_tensor, regularizer):
+
+    layer=input_tensor
+
     with tf.variable_scope('BN1'):
         epsilon = 0.001
-        mean, var = tf.nn.moments(input_tensor, axes=[0], )
+        mean, var = tf.nn.moments(layer, axes=[0], )
         scale = tf.Variable(tf.ones([1]))
         shift = tf.Variable(tf.zeros([1]))
-        layer = tf.nn.batch_normalization(input_tensor, mean, var, shift, scale, epsilon)
+        layer = tf.nn.batch_normalization(layer, mean, var, offset=shift, scale=scale, variance_epsilon=epsilon)
 
     with tf.variable_scope('layer1'):
-        input=9
+        input=81
         output=32
         weights = weight_variable([input, output], regularizer)
         biases = bias_variable([output])
@@ -41,6 +44,7 @@ def inference(input_tensor, regularizer):
         input=32
         output=64
         weights = weight_variable([input, output], regularizer)
+        print(weights.name)
         biases = bias_variable([output])
         layer = tf.nn.relu(tf.matmul(layer, weights) + biases)
     '''
@@ -70,7 +74,7 @@ def inference(input_tensor, regularizer):
         output=3
         weights = weight_variable([input, output], regularizer)
         biases = bias_variable([output])
-        layer = tf.nn.softmax(tf.matmul(layer, weights) + biases)
+        layer = tf.matmul(layer, weights) + biases
 
     return layer
 

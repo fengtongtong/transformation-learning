@@ -9,30 +9,29 @@ import tensorflow as tf
 
 def load_data(batch_size, is_training=True):
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
-    os.chdir("/home/tonny-ftt/PycharmProjects/data_9_feature")
+    os.chdir("/home/tonny-ftt/PycharmProjects/data")
 
     GM = pd.read_csv('GM.csv')
-    Adware = pd.read_csv('adware.csv')
-    Begin = pd.read_csv('begin.csv')
+    Adware = pd.read_csv('Adware.csv')
+    Begin = pd.read_csv('Begin.csv')
 
     GM = GM.sample(frac=1.0)
     Adware = Adware.sample(frac=1.0)
     Begin = Begin.sample(frac=1.0)
 
-    train = pd.merge(Adware[:12000], GM[:4000], how='outer')
-    train = pd.merge(train, Begin[:40000], how='outer')
-    test = pd.merge(Adware[40000:50000], GM[4000:4575], how='outer')
-    test = pd.merge(test, Begin[80000:100000], how='outer')
-
+    train = pd.merge(Adware[:5000], GM[:4000], how='outer')
+    train = pd.merge(train, Begin[:10000], how='outer')
+    test = pd.merge(Adware[12000:15000], GM[4000:4575], how='outer')
+    test = pd.merge(test, Begin[40000:50000], how='outer')
     train = train.sample(frac=1.0)
     test = test.sample(frac=1.0)
 
-    train_X = train.iloc[:, :9]
+    train_X = train.iloc[:, :81]
     #train_X = train_X.apply(lambda x: (x - np.min(x)) / (np.max(x) - np.min(x)))
-    train_Y = train.iloc[:, 9]
-    test_X = test.iloc[:, :9]
+    train_Y = train.iloc[:, 81]
+    test_X = test.iloc[:, :81]
     #test_X = test_X.apply(lambda x: (x - np.min(x)) / (np.max(x) - np.min(x)))
-    test_Y = test.iloc[:, 9]
+    test_Y = test.iloc[:, 81]
 
     train_X = train_X.values
     tr_Y = train_Y.values
@@ -49,7 +48,7 @@ def load_data(batch_size, is_training=True):
         test_Y = sess.run(test_Y)
 
     if is_training:
-
+        tr_Y=tr_Y.astype('int32')
         num_tr_batch = 124000 // batch_size
         return train_X, train_Y, tr_Y,num_tr_batch
 
@@ -61,8 +60,10 @@ def load_data(batch_size, is_training=True):
 
 
 def get_batch_data(batch_size, num_threads):
-    trX, trY, num_tr_batch = load_data(batch_size, is_training=True)
-    data_queues = tf.train.slice_input_producer([trX, trY])
+    trX, trY,y, num_tr_batch = load_data(batch_size, is_training=True)
+    trX=tf.cast(trX,tf.float32)
+    trY=tf.cast(trY,tf.float32)
+    data_queues = tf.train.slice_input_producer([trX, trY],shuffle=False)
     X, Y = tf.train.shuffle_batch(data_queues, num_threads=num_threads,
                                   batch_size=batch_size,
                                   capacity=batch_size * 64,
@@ -113,8 +114,22 @@ def load_new_data():
 
 
 def main(argv=None):
-    load_data()
-
+    '''
+    X,Y=get_batch_data(200,3)
+    with tf.Session() as sess:
+        coord=tf.train.Coordinator()
+        threads=tf.train.start_queue_runners(sess,coord=coord)
+        print(X.eval(),Y.eval())
+        coord.request_stop()
+        coord.join(threads)
+    fs=open('./data.txt','w')
+    train_X, train_Y, tr_Y, num_tr = load_data(200, True)
+    for step in range(num_tr):
+        start=20*step
+        end=start+20
+        fs.write(str(step)+'==============='+str(train_X[start:end])+'=========='+str(train_Y[start:end]))
+    fs.close()
+    '''
 
 
 if __name__ == '__main__':

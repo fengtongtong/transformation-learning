@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 
-INPUT_NODE = 81
+INPUT_NODE = 9
 OUTPUT_NODE = 3
 
 # 定义函数，用于初始化权值 W，初始化偏置b
@@ -27,24 +27,23 @@ def inference(input_tensor, regularizer):
         layer = tf.nn.batch_normalization(layer, mean, var, offset=shift, scale=scale, variance_epsilon=epsilon)
 
     with tf.variable_scope('layer1'):
-        input=81
+        input=9
         output=32
         weights = weight_variable([input, output], regularizer)
         biases = bias_variable([output])
         layer = tf.nn.relu(tf.matmul(layer, weights) + biases)
-    '''
+
     with tf.variable_scope('BN2'):
         epsilon = 0.001
         mean, var = tf.nn.moments(layer, axes=[0], )
         scale = tf.Variable(tf.ones([32]))
         shift = tf.Variable(tf.zeros([32]))
         layer = tf.nn.batch_normalization(layer, mean, var, shift, scale, epsilon)
-    '''
+
     with tf.variable_scope('layer2'):
         input=32
         output=64
         weights = weight_variable([input, output], regularizer)
-        print(weights.name)
         biases = bias_variable([output])
         layer = tf.nn.relu(tf.matmul(layer, weights) + biases)
     '''

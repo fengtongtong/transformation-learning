@@ -8,16 +8,21 @@ import tensorflow as tf
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 os.chdir("/home/tonny-ftt/PycharmProjects/data_9_feature")
 
+
 def load_data():
     GM = np.loadtxt('GM.csv',skiprows=1,delimiter=',')
     Adware = np.loadtxt('adware.csv',skiprows=1,delimiter=',')
     Begin = np.loadtxt('begin.csv',skiprows=1,delimiter=',')
-    #Adware = np.random.shuffle(Adware)
-    #Begin = np.random.shuffle(Begin)
+    np.random.shuffle(Adware)
+    np.random.shuffle(Begin)
     train=np.row_stack((Adware[:12000],Begin[:40000]))
-    train = np.row_stack((train, GM))
+    test=np.row_stack((Adware[12000:15000],Begin[40000:50000]))
+    train = np.row_stack((train, GM[:4000]))
+    test = np.row_stack((test,GM[4000:4575]))
     np.random.shuffle(train)
-    np.savetxt('data_new.csv', train, delimiter=',')
+    np.random.shuffle(test)
+    np.savetxt('train.csv', train, delimiter=',',fmt='%d')
+    np.savetxt('test.csv',test,delimiter=',',fmt='%d')
 
 
 
@@ -38,13 +43,28 @@ def read_my_file_format(filename_queue):
 
 
 
-def load_batch(filenames, batch_size, num_epochs=None):
-    filename_queue = tf.train.string_input_producer(filenames, num_epochs=num_epochs, shuffle=True)
+
+def load_batch_1(filenames, batch_size, num_epochs=None):
+    filename_queue = tf.train.string_input_producer(filenames, num_epochs=num_epochs, shuffle=False)
     example, label = read_my_file_format(filename_queue)
-    min_after_dequeue = 10
+    min_after_dequeue = 10*batch_size
     capacity = min_after_dequeue + 3 * batch_size
     example_batch, label_batch = tf.train.shuffle_batch([example, label], batch_size=batch_size, capacity=capacity,min_after_dequeue=min_after_dequeue)
     return example_batch, label_batch
+
+
+
+
+def load_batch_2(filenames, batch_size, num_epochs=None):
+    filename_queue = tf.train.string_input_producer(filenames, num_epochs=num_epochs, shuffle=False)
+    example, label = read_my_file_format(filename_queue)
+    min_after_dequeue = 0
+    capacity = min_after_dequeue + batch_size
+    example_batch, label_batch = tf.train.shuffle_batch([example, label], batch_size=batch_size, capacity=capacity,min_after_dequeue=min_after_dequeue)
+    return example_batch, label_batch
+
+
+
 
 '''
 BATCH_SIZE=200
@@ -72,7 +92,7 @@ def train():
             ofs.close()
             saver.save(sess, 'net/my_net.ckpt')
 
-
+'''
 
 def main():
     load_data()
@@ -80,4 +100,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-'''
+
